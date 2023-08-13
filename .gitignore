@@ -1,0 +1,11 @@
+*.ko
+*.cmd
+*.mod
+*.o
+*.mod.c
+*.symvers
+*.order
+main_poll
+main_sigio
+main_second
+main_aio
