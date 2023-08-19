@@ -9,7 +9,7 @@ obj-m += hello.o
 build: kernel_modules
 
 kernel_modules:
-	make -C /root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1 M=$(CURDIR) modules
+	make -C /lib/modules/$(KVERS)/build M=$(CURDIR) modules
 
 clean:
-	make -C /root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1 M=$(CURDIR) clean
+	make -C /lib/modules/$(KVERS)/build M=$(CURDIR) clean

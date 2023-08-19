@@ -4,9 +4,9 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1/include",
-                "/root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1/arch/x86/include",
-                "/root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1/arch/x86/include/generated"
+                "/lib/modules/5.10.103-v7+/build/include//include",
+                "/lib/modules/5.10.103-v7+/build/include//arch/x86/include",
+                "/lib/modules/5.10.103-v7+/build/include//arch/x86/include/generated"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

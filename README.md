@@ -41,7 +41,7 @@ Character devices:
 230 globalmem
 
 # Create device node with major 230, minor 0
-$ mknod /dev/globalmem c 230 0
+$ mknod /dev/globalmem c 230 0 -m 666
 
 # Read / write globalmem.
 $ echo "hello world" > /dev/globalmem
@@ -57,7 +57,7 @@ $ dmesg --follow
 ```shell
 # Block read / write fifo data.
 $ insmod ./globalfifo.ko
-$ mknod /dev/globalfifo c 231 0
+$ mknod /dev/globalfifo c 231 0 -m 666
 $ cat /dev/globalfifo
 hello world
 $ echo "hello world" > /dev/globalfifo
@@ -70,7 +70,7 @@ $ ./main_aio
 - `second`: kernel timer device driver (Linux WSL jiffies about 100 / per second).
 ```shell
 $ insmod ./second.ko
-$ mknod /dev/second c 232 0
+$ mknod /dev/second c 232 0 -m 666
 $ ./main_second
 Seconds after open /dev/second: 1
 Seconds after open /dev/second: 2

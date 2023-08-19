@@ -1,9 +1,5 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
-    "sonarlint.connectedMode.project": {
-        "connectionId": "https-sonar-dev-siemens-com-",
-        "projectKey": "siemens-energy-sicam:TelecommunicationProducts:SampleCodeCpp"
-    },
     "files.associations": {
       "module.h": "c",
       "init.h": "c",
