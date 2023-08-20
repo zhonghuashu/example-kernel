@@ -23,40 +23,48 @@ $ ln -s /root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1 build
 ```shell
 # Install / remove kernel module.
 $ insmod ./hello.ko
+# Pass arguments to kernel module.
+$ echo 11 > /sys/module/hello/parameters/cb_hello_value
 $ rmmod ./hello.ko
 
 # Print kernel log and wait for new messages.
 $ dmesg --follow
-[ 2631.437902] Hello World enter
-[ 2813.972935] Hello World exit
+Hello World enter
+Hello World exit
+New value of cb_hello_value = 11
 ```
 - `globalmem`: A simple char device driver with mutex.
 ```shell
 # Install globalmem device driver.
 $ insmod ./globalmem.ko
 
-# List globalmem character device (major 230)
-$ cat /proc/devices
-Character devices:
-230 globalmem
+# Read / write arguments to kernel module.
+$ echo 11 > /sys/module/globalmem/parameters/globalmem_cb_value
 
-# Create device node with major 230, minor 0
-$ mknod /dev/globalmem c 230 0 -m 666
-
-# Read / write globalmem.
+# Read / write /dev/globalmem using cat linux command.
 $ echo "hello world" > /dev/globalmem
 $ cat /dev/globalmem
 hello world
-
 $ dmesg --follow
-[32727.080308] written 12 bytes(s) from 0
-[32736.671514] read 4096 bytes(s) from 0
+written 12 bytes(s) from 0
+read 4096 bytes(s) from 0
+
+# Read / write / ioctl device (/dev/globalmem) using user space application.
+$ ./main_app
+
+# Read / write procfs (Process Filesystem) info exported by kernel module.
+$ cat /proc/example/globalmem
+try proc array
+$ echo "device driver test" > /proc/example/globalmem
+$ cat /proc/example/globalmem
+device driver test
 ```
 
 - `globalfifo`: A simple char device driver with block I/O, non-block poll.
 ```shell
 # Block read / write fifo data.
 $ insmod ./globalfifo.ko
+#  List character device major number (/proc/devices) and create device.
 $ mknod /dev/globalfifo c 231 0 -m 666
 $ cat /dev/globalfifo
 hello world

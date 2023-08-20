@@ -79,4 +79,6 @@
     "doxdocgen.generic.useGitUserName": true,
     "doxdocgen.generic.boolReturnsTrueFalse": false,
     "doxdocgen.generic.returnTemplate": "@return ",
+    "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
+    "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, UseTab: Never, IndentWidth: 4, TabWidth: 4, BreakBeforeBraces: Linux, AllowShortIfStatementsOnASingleLine: false, IndentCaseLabels: false, ColumnLimit: 0, AccessModifierOffset: -4, NamespaceIndentation: All, FixNamespaceComments: false }",
 }
