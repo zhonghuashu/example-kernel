@@ -61,7 +61,7 @@
     },
     "makefile.configurations": [],
     "makefile.compileCommandsPath": "compile_commands.json",
-    "makefile.makefilePath": "make",
+    "makefile.makefilePath": "Makefile",
     "cSpell.diagnosticLevel": "Hint",
     "doxdocgen.file.fileOrder": [
         "file",
@@ -81,4 +81,5 @@
     "doxdocgen.generic.returnTemplate": "@return ",
     "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
     "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, UseTab: Never, IndentWidth: 4, TabWidth: 4, BreakBeforeBraces: Linux, AllowShortIfStatementsOnASingleLine: false, IndentCaseLabels: false, ColumnLimit: 0, AccessModifierOffset: -4, NamespaceIndentation: All, FixNamespaceComments: false }",
+    //"sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
 }

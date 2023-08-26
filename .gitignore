@@ -10,3 +10,4 @@ main_sigio
 main_second
 main_aio
 main_app
+compile_commands.json

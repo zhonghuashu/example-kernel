@@ -6,10 +6,16 @@
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/ioctl.h>
+#include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/slab.h>
+#include <linux/sysfs.h>
 #include <linux/uaccess.h>
+#include <linux/wait.h>
+#include <linux/interrupt.h>
+#include <asm/io.h>
+#include <linux/err.h>
 
 #define GLOBALMEM_SIZE 0x1000
 #define GLOBALMEM_MAGIC 'g'
@@ -21,11 +27,9 @@
 static dev_t dev_no = 0;
 static struct class *dev_class;
 
-/**
- * Kernel module arguments.
- */
+/*************** Kernel module arguments **********************/
 static int notify_param(const char *val, const struct kernel_param *kp);
-int globalmem_value;
+int globalmem_value = 0;
 int globalmem_arr_value[4];
 char *globalmem_hello_name;
 int globalmem_cb_value = 0;
@@ -41,9 +45,8 @@ const struct kernel_param_ops my_param_ops = {
 
 module_param_cb(globalmem_cb_value, &my_param_ops, &globalmem_cb_value, S_IRUGO | S_IWUSR);
 
-/**
- * Common character device struct and encapsulated memory buffer mem[]
- */
+/*************** device struct**********************/
+// Common character device struct and encapsulated memory buffer mem[]
 struct globalmem_dev {
     struct cdev cdev;
     unsigned char mem[GLOBALMEM_SIZE];
@@ -74,7 +77,7 @@ static const struct file_operations globalmem_fops = {
     .open = globalmem_open,
     .release = globalmem_release};
 
-/***************** Procfs Functions *******************/
+/***************** Procfs *******************/
 char globalmem_proc_array[20] = "try proc array\n";
 int globalmem_proc_len = 1;
 static struct proc_dir_entry *proc_parent;
@@ -89,7 +92,75 @@ static struct proc_ops proc_fops = {
     .proc_write = write_proc,
     .proc_release = release_proc};
 
-/*----------------------Module_param_cb()--------------------------------*/
+/*************** Sysfs **********************/
+static ssize_t sysfs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count);
+struct kobject *kobj_ref;
+volatile int sysfs_value = 0;
+struct kobj_attribute globalmem_attr = __ATTR(sysfs_value, 0660, sysfs_show, sysfs_store);
+
+/***************** Wait queue *******************/
+wait_queue_head_t wait_queue_exit;
+int wait_queue_flag = 0;
+static struct task_struct *wait_thread;
+
+/***************** Interrupt *******************/
+// Interrupt Request number.
+#define IRQ_NO 11
+// Interrupt handler for IRQ 11.
+static irqreturn_t irq_handler(int irq, void *dev_id)
+{
+    pr_info("Shared IRQ: Interrupt Occurred");
+    return IRQ_HANDLED;
+}
+
+/**
+ * This function will be called when we read the sysfs file.
+ */
+static ssize_t sysfs_show(struct kobject *kobj,
+                          struct kobj_attribute *attr, char *buf)
+{
+    pr_info("Sysfs - Read!!!\n");
+    pr_info("Raise interrupt IRQ 11\n");
+    asm("int $0x3B");  // Corresponding to irq 11
+
+    return sprintf(buf, "%d", sysfs_value);
+}
+
+/**
+ * This function will be called when we write the sysfsfs file.
+ */
+static ssize_t sysfs_store(struct kobject *kobj,
+                           struct kobj_attribute *attr, const char *buf, size_t count)
+{
+    pr_info("Sysfs - Write!!!\n");
+    sscanf(buf, "%d", &sysfs_value);
+    return count;
+}
+
+/**
+ * Thread function.
+ */
+static int wait_function(void *unused)
+{
+
+    while (1) {
+        pr_info("Waiting For Event...\n");
+        wait_event_interruptible(wait_queue_exit, wait_queue_flag != 0);
+        if (wait_queue_flag == 2) {
+            pr_info("Event Came From Exit Function\n");
+            return 0;
+        } else {
+            pr_info("Event Came From %d\n", wait_queue_flag);
+        }
+        wait_queue_flag = 0;
+    }
+    return 0;
+}
+
+/**
+ * Module_param_cb
+ */
 static int notify_param(const char *val, const struct kernel_param *kp)
 {
     int res = param_set_int(val, kp); // Use helper for write variable
@@ -346,6 +417,32 @@ static int __init globalmem_init(void)
     // Creating Proc entry under "/proc/globalmem/".
     proc_create("globalmem", 0666, proc_parent, &proc_fops);
 
+    // Initialize wait queue.
+    init_waitqueue_head(&wait_queue_exit);
+
+    // Creating a directory in /sys/kernel/
+    kobj_ref = kobject_create_and_add("example_sysfs", kernel_kobj);
+
+    // Creating sysfs file for globalmem_value.
+    if (sysfs_create_file(kobj_ref, &globalmem_attr.attr)) {
+        pr_err("Cannot create sysfs file......\n");
+        goto r_sysfs;
+    }
+
+    // Create the kernel thread with name 'mythread'
+    wait_thread = kthread_create(wait_function, NULL, "WaitThread");
+    if (wait_thread) {
+        pr_info("Thread Created successfully\n");
+        wake_up_process(wait_thread);
+    } else
+        pr_info("Thread creation failed\n");
+
+    // Register an interrupt handler.
+    if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "globalmem", (void *)(irq_handler))) {
+        pr_err("my_device: cannot register IRQ ");
+        goto irq;
+    }
+
     globalmem_devp = kzalloc(sizeof(struct globalmem_dev), GFP_KERNEL);
     if (!globalmem_devp) {
         ret = -ENOMEM;
@@ -358,6 +455,11 @@ static int __init globalmem_init(void)
     pr_info("Kernel module inserted successfully...\n");
     return 0;
 
+irq:
+    free_irq(IRQ_NO,(void *)(irq_handler));
+r_sysfs:
+    kobject_put(kobj_ref);
+    sysfs_remove_file(kernel_kobj, &globalmem_attr.attr);
 r_device:
     class_destroy(dev_class);
 r_class:
@@ -375,6 +477,15 @@ module_init(globalmem_init);
  */
 static void __exit globalmem_exit(void)
 {
+    free_irq(IRQ_NO, (void *)(irq_handler));
+
+    kobject_put(kobj_ref);
+    sysfs_remove_file(kernel_kobj, &globalmem_attr.attr);
+
+    // Wakeup wait queue before exit driver.
+    wait_queue_flag = 2;
+    wake_up_interruptible(&wait_queue_exit);
+
     // Remove complete /proc/example-kernel.
     proc_remove(proc_parent);
     device_destroy(dev_class, dev_no);

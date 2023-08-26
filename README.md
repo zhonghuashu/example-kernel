@@ -58,6 +58,21 @@ try proc array
 $ echo "device driver test" > /proc/example/globalmem
 $ cat /proc/example/globalmem
 device driver test
+
+# Read / write files in sysfs contain information about devices and drivers.
+$ echo 1 > /sys/kernel/example_sysfs/sysfs_value
+$ cat /sys/kernel/example_sysfs/sysfs_value
+1
+
+# Waiting for a termination event to exit from sleep using waitqueue.
+$ rmmod globalmem
+Waiting For Event...
+Event Came From Exit Function
+
+# Raise interrupt when read sysfs value.(Kernel need to rebuild avoid error)
+$ cat /sys/kernel/example_sysfs/sysfs_value
+Raise interrupt IRQ 11
+No irq handler for vector
 ```
 
 - `globalfifo`: A simple char device driver with block I/O, non-block poll.
