@@ -20,6 +20,8 @@
 #include <linux/workqueue.h>
 #include <linux/delay.h>
 #include <linux/timer.h>
+#include <linux/hrtimer.h>
+#include <linux/ktime.h>
 
 #define GLOBALMEM_SIZE 0x1000
 #define GLOBALMEM_MAGIC 'g'
@@ -151,11 +153,33 @@ int globalmem_thread_variable;
 static struct task_struct *sig_task = NULL;
 static int sig_num = 0;
 
-/***************** kernle timer *******************/
-#define TIMEOUT 5000    //milliseconds
+/***************** kernel timer *******************/
+#define TIMEOUT 5000    // milliseconds
 static struct timer_list globalmem_timer;
-static unsigned int globalmem_counter = 0;
+static unsigned int timer_counter = 0;
 void timer_callback(struct timer_list * data);
+
+/***************** htrimer *******************/
+#define TIMEOUT_NSEC   ( 1000000000L )      // 1 second in nano seconds
+#define TIMEOUT_SEC    ( 4 )                // 4 seconds
+static struct hrtimer globalmem_hr_timer;
+static unsigned int hrtimer_counter = 0;
+enum hrtimer_restart hr_timer_callback(struct hrtimer *timer);
+
+/**
+ * Timer Callback function. This will be called when timer expires
+ */
+enum hrtimer_restart hr_timer_callback(struct hrtimer *timer)
+{
+    /* do your timer stuff here */
+    if (++hrtimer_counter == 1) {
+        pr_info("hrtimer callback function called [%d]\n", hrtimer_counter++);
+    }
+
+    hrtimer_forward_now(timer, ktime_set(TIMEOUT_SEC, TIMEOUT_NSEC));
+
+    return HRTIMER_RESTART;
+}
 
 /**
  * Timer Callback function. This will be called when timer expires.
@@ -163,13 +187,15 @@ void timer_callback(struct timer_list * data);
 void timer_callback(struct timer_list * data)
 {
     /* do your timer stuff here */
-    pr_info("Timer Callback function Called [%d]\n", globalmem_counter++);
+    if (++timer_counter == 1) {
+        pr_info("Kernel timer callback function called [%d]\n", timer_counter);
+    }
 
     /*
        Re-enable timer. Because this function will be called only first time.
        If we re-enable this will work like periodic timer.
     */
-    // mod_timer(&globalmem_timer, jiffies + msecs_to_jiffies(TIMEOUT));
+    mod_timer(&globalmem_timer, jiffies + msecs_to_jiffies(TIMEOUT));
 }
 
 /**
@@ -588,6 +614,7 @@ static void globalmem_setup_cdev(struct globalmem_dev *dev, int index)
 static int __init globalmem_init(void)
 {
     int ret;
+    ktime_t ktime;
 
     /*
     Use kernel module arguments.
@@ -702,6 +729,12 @@ static int __init globalmem_init(void)
     // Setup timer interval to based on TIMEOUT Macro.
     mod_timer(&globalmem_timer, jiffies + msecs_to_jiffies(TIMEOUT));
 
+    // Setup hrtimer to call my_timer_callback.
+    ktime = ktime_set(TIMEOUT_SEC, TIMEOUT_NSEC);
+    hrtimer_init(&globalmem_hr_timer, CLOCK_MONOTONIC /* Always to move forward in time */, HRTIMER_MODE_REL /* Relative */);
+    globalmem_hr_timer.function = &hr_timer_callback;
+    hrtimer_start( &globalmem_hr_timer, ktime, HRTIMER_MODE_REL);
+
     globalmem_setup_cdev(globalmem_devp, 0);
     mutex_init(&globalmem_devp->mutex);
 
@@ -732,6 +765,7 @@ static void __exit globalmem_exit(void)
 {
     struct my_list *cursor, *temp;
 
+    hrtimer_cancel(&globalmem_hr_timer);
     del_timer(&globalmem_timer);
     tasklet_kill(tasklet);
     if (tasklet != NULL) {

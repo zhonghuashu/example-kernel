@@ -103,9 +103,11 @@ $ ./main_app
 4
 Received signal from kernel : Value =  1
 
-# Kernel timer to trigger at every 5 seconds.
+# Kernel timer (ms resolution) / hrtimer (ns resolution) to trigger at every 5 seconds.
 $ insmod globalmem.ko
-Timer Callback function Called [0]
+Kernel timer callback function called [1]
+hrtimer callback function called [1]
+
 ```
 
 - `globalfifo`: A simple char device driver with block I/O, non-block poll.
