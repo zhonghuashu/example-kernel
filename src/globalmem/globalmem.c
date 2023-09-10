@@ -15,7 +15,11 @@
 #include <linux/wait.h>
 #include <linux/interrupt.h>
 #include <asm/io.h>
+#include <asm/hw_irq.h>
 #include <linux/err.h>
+#include <linux/workqueue.h>
+#include <linux/delay.h>
+#include <linux/timer.h>
 
 #define GLOBALMEM_SIZE 0x1000
 #define GLOBALMEM_MAGIC 'g'
@@ -107,12 +111,196 @@ static struct task_struct *wait_thread;
 /***************** Interrupt *******************/
 // Interrupt Request number.
 #define IRQ_NO 11
-// Interrupt handler for IRQ 11.
+static irqreturn_t irq_handler(int irq, void *dev_id);
+
+/***************** Work queue *******************/
+void workqueue_fn(struct work_struct *work);
+
+/* Creating work by Static Method */
+DECLARE_WORK(workqueue, workqueue_fn);
+
+/***************** kernel linked list *******************/
+struct my_list{
+     struct list_head list;     // linux kernel list implementation
+     int data;
+};
+
+/* Declare and init the head node of the linked list. */
+LIST_HEAD(head_node);
+
+/***************** kernel thread *******************/
+static struct task_struct *globalmem_thread;
+static struct task_struct *globalmem_thread2;
+int thread_function(void *pv);
+int thread_function2(void *pv);
+
+/***************** tasklet *******************/
+void tasklet_fn(unsigned long);
+// Tasklet by Dynamic Method.
+struct tasklet_struct *tasklet = NULL;
+
+/***************** race condition *******************/
+struct mutex globalmem_mutex;
+spinlock_t globalmem_spinlock;
+rwlock_t globalmem_rwlock;
+int globalmem_thread_variable;
+
+/***************** signal *******************/
+#define SIGETX 44
+#define REG_CURRENT_TASK _IOW(GLOBALMEM_MAGIC, 0x02, int32_t *)
+static struct task_struct *sig_task = NULL;
+static int sig_num = 0;
+
+/***************** kernle timer *******************/
+#define TIMEOUT 5000    //milliseconds
+static struct timer_list globalmem_timer;
+static unsigned int globalmem_counter = 0;
+void timer_callback(struct timer_list * data);
+
+/**
+ * Timer Callback function. This will be called when timer expires.
+ */
+void timer_callback(struct timer_list * data)
+{
+    /* do your timer stuff here */
+    pr_info("Timer Callback function Called [%d]\n", globalmem_counter++);
+
+    /*
+       Re-enable timer. Because this function will be called only first time.
+       If we re-enable this will work like periodic timer.
+    */
+    // mod_timer(&globalmem_timer, jiffies + msecs_to_jiffies(TIMEOUT));
+}
+
+/**
+ * Tasklet function.
+ */
+void tasklet_fn(unsigned long arg)
+{
+    pr_info("Executing Tasklet Function : arg = %ld\n", arg);
+}
+
+/**
+ * Kernel thread function.
+ */
+int thread_function(void *pv)
+{
+    int i = 0;
+    while(!kthread_should_stop()) {
+        i++;
+        // Mutex example.
+        mutex_lock(&globalmem_mutex);
+        if (i == 1) {
+            pr_info("Mutex is locked in Thread Function 1\n");
+        }
+        globalmem_thread_variable++;
+        mutex_unlock(&globalmem_mutex);
+
+        // Spin lock example.
+        spin_lock(&globalmem_spinlock);
+        if(i == 1 && spin_is_locked(&globalmem_spinlock)) {
+            pr_info("Spinlock is locked in Thread Function 1\n");
+        }
+        globalmem_thread_variable++;
+        spin_unlock(&globalmem_spinlock);
+
+        // Read-write spin lock example.
+        read_lock(&globalmem_rwlock);
+        if (i == 1) {
+            pr_info("Read lock value %d\n", globalmem_thread_variable);
+        }
+        read_unlock(&globalmem_rwlock);
+
+        if (i == 1) {
+            pr_info("In globalmem thread function %d\n", i++);
+            pr_info("globalmem_thread_variable: %d\n", globalmem_thread_variable);
+        }
+
+        msleep(1000);
+    }
+    return 0;
+}
+
+/**
+ * Kernel thread function.
+ */
+int thread_function2(void *pv)
+{
+    while(!kthread_should_stop()) {
+        mutex_lock(&globalmem_mutex);
+        globalmem_thread_variable++;
+        mutex_unlock(&globalmem_mutex);
+
+        spin_lock(&globalmem_spinlock);
+        globalmem_thread_variable++;
+        spin_unlock(&globalmem_spinlock);
+
+        write_lock(&globalmem_rwlock);
+        globalmem_thread_variable++;
+        write_unlock(&globalmem_rwlock);
+
+        msleep(1000);
+    }
+    return 0;
+}
+/**
+ * Workqueue Function
+ */
+void workqueue_fn(struct work_struct *work)
+{
+    struct my_list *temp_node = NULL;
+    struct my_list *temp;
+    int count = 0;
+    pr_info("Executing Workqueue Function\n");
+
+    // Link list: Creating Node.
+    temp_node = kmalloc(sizeof(struct my_list), GFP_KERNEL);
+    // Assgin the data that is received.
+    temp_node->data = sysfs_value;
+    // Init the list within the struct.
+    INIT_LIST_HEAD(&temp_node->list);
+    // Add Node to Linked List.
+    list_add_tail(&temp_node->list, &head_node);
+    // Traversing Linked List and Print its Members.
+    list_for_each_entry(temp, &head_node, list)
+    {
+        pr_info("Node %d data = %d\n", count++, temp->data);
+    }
+    pr_info("Total Nodes = %d\n", count);
+}
+
+/**
+ * Interrupt handler for IRQ 11.
+ */
 static irqreturn_t irq_handler(int irq, void *dev_id)
 {
+    struct kernel_siginfo info;
+
+    // Top half
     pr_info("Shared IRQ: Interrupt Occurred");
+
+    // Bottom half using global workqueue.
+    schedule_work(&workqueue);
+
+    // Schedule task to tasklet with normal priority.
+    tasklet_schedule(tasklet);
+
+    // Sending signal to the user space app.
+    memset(&info, 0, sizeof(struct kernel_siginfo));
+    info.si_signo = SIGETX;
+    info.si_code = SI_QUEUE;
+    info.si_int = 1;
+
+    if (sig_task != NULL) {
+        pr_info("Sending signal to app\n");
+        if(send_sig_info(SIGETX, &info, sig_task) < 0) {
+            pr_info("Unable to send signal\n");
+        }
+    }
+
     return IRQ_HANDLED;
 }
+
 
 /**
  * This function will be called when we read the sysfs file.
@@ -120,9 +308,20 @@ static irqreturn_t irq_handler(int irq, void *dev_id)
 static ssize_t sysfs_show(struct kobject *kobj,
                           struct kobj_attribute *attr, char *buf)
 {
+    struct irq_desc *desc;
+
     pr_info("Sysfs - Read!!!\n");
     pr_info("Raise interrupt IRQ 11\n");
-    asm("int $0x3B");  // Corresponding to irq 11
+
+    // Raise IRQ 11.
+    desc = irq_to_desc(11);
+    if (!desc) {
+        return -EINVAL;
+    }
+
+    // Corresponding to irq 11: FIRST_EXTERNAL_VECTOR 0x20 + IRQ0_VECTOR 0x10 + IRQ 11 = 0x3B (59)
+    __this_cpu_write(vector_irq[59], desc);
+    asm("int $0x3B");
 
     return sprintf(buf, "%d", sysfs_value);
 }
@@ -135,6 +334,7 @@ static ssize_t sysfs_store(struct kobject *kobj,
 {
     pr_info("Sysfs - Write!!!\n");
     sscanf(buf, "%d", &sysfs_value);
+
     return count;
 }
 
@@ -229,6 +429,7 @@ static ssize_t write_proc(struct file *filp, const char *buff, size_t len, loff_
 
 static int globalmem_open(struct inode *inode, struct file *filp)
 {
+    pr_info("Device driver file opened\n");
     // Pointer private_data to device struct.
     filp->private_data = globalmem_devp;
     return 0;
@@ -236,6 +437,15 @@ static int globalmem_open(struct inode *inode, struct file *filp)
 
 static int globalmem_release(struct inode *inode, struct file *filp)
 {
+    struct task_struct *ref_task = get_current();
+
+    pr_info("Device driver file closed\n");
+
+    // Delete registered signal task.
+    if (ref_task == sig_task) {
+        sig_task = NULL;
+    }
+
     return 0;
 }
 
@@ -246,11 +456,15 @@ static long globalmem_ioctl(struct file *filp, unsigned int cmd,
     struct globalmem_dev *dev = filp->private_data;
 
     switch (cmd) {
-    case MEM_CLEAR: // Clear memory buffer to zero.
+    case MEM_CLEAR:
+        pr_info("Clear memory buffer to zero\n");
         memset(dev->mem, 0, GLOBALMEM_SIZE);
-        printk(KERN_INFO "globalmem is set to zero\n");
         break;
-
+    case REG_CURRENT_TASK:
+        pr_info("Register current task\n");
+        sig_task = get_current();
+        sig_num = SIGETX;
+        break;
     default:
         return -EINVAL;
     }
@@ -385,6 +599,12 @@ static int __init globalmem_init(void)
         pr_info("array_value[%d] = %d\n", i, globalmem_arr_value[i]);
     }
 
+    globalmem_devp = kzalloc(sizeof(struct globalmem_dev), GFP_KERNEL);
+    if (!globalmem_devp) {
+        ret = -ENOMEM;
+        goto fail_malloc;
+    }
+
     /*
     Automatic create device file.
     */
@@ -443,11 +663,44 @@ static int __init globalmem_init(void)
         goto irq;
     }
 
-    globalmem_devp = kzalloc(sizeof(struct globalmem_dev), GFP_KERNEL);
-    if (!globalmem_devp) {
-        ret = -ENOMEM;
-        goto fail_malloc;
+    // Creating work by Dynamic Method.
+    INIT_WORK(&workqueue, workqueue_fn);
+
+    // Creating kernel thread.
+    globalmem_thread = kthread_create(thread_function, NULL, "globalmem Thread");
+    if (globalmem_thread) {
+        pr_info("Kthread Created Successfully...\n");
+        wake_up_process(globalmem_thread);
+    } else {
+        pr_err("Cannot create kthread\n");
+        goto irq;
     }
+    globalmem_thread2 = kthread_run(thread_function2, NULL, "globalmem Thread 2");
+    if (globalmem_thread2) {
+        pr_info("Kthread2 Created Successfully...\n");
+    } else {
+        pr_err("Cannot create kthread2\n");
+        goto irq;
+    }
+
+    // Init the tasklet bt Dynamic Method.
+    tasklet = kmalloc(sizeof(struct tasklet_struct), GFP_KERNEL);
+    if (tasklet == NULL) {
+        pr_info("globalmem_device: cannot allocate Memory");
+        goto irq;
+    }
+    tasklet_init(tasklet, tasklet_fn, 0);
+
+    // Initialize methods for race conditions.
+    mutex_init(&globalmem_mutex);
+    spin_lock_init(&globalmem_spinlock);
+    rwlock_init(&globalmem_rwlock);
+
+    // Setup your timer to call my_timer_callback.
+    // If you face some issues and using older kernel version, then you can try setup_timer API(Change Callback function's argument to unsingned long instead of struct timer_list *.
+    timer_setup(&globalmem_timer, timer_callback, 0);
+    // Setup timer interval to based on TIMEOUT Macro.
+    mod_timer(&globalmem_timer, jiffies + msecs_to_jiffies(TIMEOUT));
 
     globalmem_setup_cdev(globalmem_devp, 0);
     mutex_init(&globalmem_devp->mutex);
@@ -477,6 +730,23 @@ module_init(globalmem_init);
  */
 static void __exit globalmem_exit(void)
 {
+    struct my_list *cursor, *temp;
+
+    del_timer(&globalmem_timer);
+    tasklet_kill(tasklet);
+    if (tasklet != NULL) {
+        kfree(tasklet);
+    }
+
+    kthread_stop(globalmem_thread);
+    kthread_stop(globalmem_thread2);
+
+    // Go through the list and free the memory. Type-safe against the removal of list entry.
+    list_for_each_entry_safe(cursor, temp, &head_node, list)
+    {
+        list_del(&cursor->list);
+        kfree(cursor);
+    }
     free_irq(IRQ_NO, (void *)(irq_handler));
 
     kobject_put(kobj_ref);

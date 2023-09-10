@@ -4,16 +4,17 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1/include",
-                "/root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1/arch/x86/include",
-                "/root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1/arch/x86/include/generated"
+                "/lib/modules/5.10.102.1-microsoft-standard-WSL2/build/include",
+                "/lib/modules/5.10.102.1-microsoft-standard-WSL2/build/arch/x86/include",
+                "/lib/modules/5.10.102.1-microsoft-standard-WSL2/build/arch/x86/include/generated"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64",
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "configurationProvider": "ms-vscode.makefile-tools",
+            "compileCommands": "${workspaceFolder}/compile_commands.json"
         }
     ],
     "version": 4

@@ -60,7 +60,7 @@
       "cinttypes": "cpp"
     },
     "makefile.configurations": [],
-    "makefile.compileCommandsPath": "compile_commands.json",
+    // "makefile.compileCommandsPath": "compile_commands.json",
     "makefile.makefilePath": "Makefile",
     "cSpell.diagnosticLevel": "Hint",
     "doxdocgen.file.fileOrder": [

@@ -18,6 +18,11 @@ $ ln -s /root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1 build
 ```
 # Build and test
 - Build Makefile project via `make`
+- Generate compiler_commands.json file.
+```shell
+$ bear -- make KCONFIG_CONFIG=Microsoft/config-wsl -j8
+```
+
 - Run project `hello`
 
 ```shell
@@ -49,30 +54,58 @@ $ dmesg --follow
 written 12 bytes(s) from 0
 read 4096 bytes(s) from 0
 
-# Read / write / ioctl device (/dev/globalmem) using user space application.
+# ioctl device (/dev/globalmem) using user space application.
 $ ./main_app
 
-# Read / write procfs (Process Filesystem) info exported by kernel module.
+# Procfs (Process Filesystem) info exported by kernel module.
 $ cat /proc/example/globalmem
 try proc array
 $ echo "device driver test" > /proc/example/globalmem
 $ cat /proc/example/globalmem
 device driver test
 
-# Read / write files in sysfs contain information about devices and drivers.
+# Sysfs contain information about devices and drivers.
 $ echo 1 > /sys/kernel/example_sysfs/sysfs_value
 $ cat /sys/kernel/example_sysfs/sysfs_value
 1
 
-# Waiting for a termination event to exit from sleep using waitqueue.
+# Waitqueue to wait for a termination event to exit from sleep.
 $ rmmod globalmem
 Waiting For Event...
 Event Came From Exit Function
 
-# Raise interrupt when read sysfs value.(Kernel need to rebuild avoid error)
+# Raise interrupt using using `int` instruction when read sysfs value. Note: WSL2 linux kernel need to rebuild to export irq vector.
 $ cat /sys/kernel/example_sysfs/sysfs_value
 Raise interrupt IRQ 11
-No irq handler for vector
+Shared IRQ: Interrupt Occurred
+# Bottom half code deferred to a work queue.
+Executing Workqueue Function
+
+# Linked list consists sequence of nodes (list_head [*prev, *next] -> [list_head, data 1] -> [list_head, data 2])
+$ echo 1 > /sys/kernel/example_sysfs/sysfs_value
+$ cat /sys/kernel/example_sysfs/sysfs_value
+Node 0 data = 1
+Total Nodes = 1
+
+# Kernel thread to print some text at every 5 seconds. Mutex / spinlock used to protect shared variable between threads.
+$ insmod globalmem.ko
+In globalmem thread function 0
+In globalmem thread function 1
+
+# Tasklet to deferred interrupt Bottom half work.
+$ cat /sys/kernel/example_sysfs/sysfs_value
+Executing Tasklet Function : arg = 0
+
+# Signal sent from kernel to user space app.
+$ cat /sys/kernel/example_sysfs/sysfs_value
+Sending signal to app
+$ ./main_app
+4
+Received signal from kernel : Value =  1
+
+# Kernel timer to trigger at every 5 seconds.
+$ insmod globalmem.ko
+Timer Callback function Called [0]
 ```
 
 - `globalfifo`: A simple char device driver with block I/O, non-block poll.
