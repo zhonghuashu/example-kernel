@@ -71,15 +71,20 @@ $ cat /sys/kernel/example_sysfs/sysfs_value
 
 # Waitqueue to wait for a termination event to exit from sleep.
 $ rmmod globalmem
-Waiting For Event...
-Event Came From Exit Function
+Waiting for event - wait queue...
+Event came from exit function
+
+# Completion to wait for a read complete event to exit from sleep.
+$ cat /dev/globalmem
+Waiting for event - completion...
+Event came from read function
 
 # Raise interrupt using using `int` instruction when read sysfs value. Note: WSL2 linux kernel need to rebuild to export irq vector.
 $ cat /sys/kernel/example_sysfs/sysfs_value
 Raise interrupt IRQ 11
-Shared IRQ: Interrupt Occurred
+Shared IRQ: Interrupt occurred
 # Bottom half code deferred to a work queue.
-Executing Workqueue Function
+Executing workqueue function
 
 # Linked list consists sequence of nodes (list_head [*prev, *next] -> [list_head, data 1] -> [list_head, data 2])
 $ echo 1 > /sys/kernel/example_sysfs/sysfs_value

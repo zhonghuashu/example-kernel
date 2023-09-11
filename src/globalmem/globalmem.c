@@ -106,9 +106,17 @@ volatile int sysfs_value = 0;
 struct kobj_attribute globalmem_attr = __ATTR(sysfs_value, 0660, sysfs_show, sysfs_store);
 
 /***************** Wait queue *******************/
+static int wait_function(void *unused);
 wait_queue_head_t wait_queue_exit;
 int wait_queue_flag = 0;
 static struct task_struct *wait_thread;
+
+/***************** completion *******************/
+static int wait_function2(void *unused);
+static struct task_struct *wait_thread2;
+uint32_t completion_count = 0;
+struct completion data_read_complete;
+int completion_flag = 0;
 
 /***************** Interrupt *******************/
 // Interrupt Request number.
@@ -203,7 +211,7 @@ void timer_callback(struct timer_list * data)
  */
 void tasklet_fn(unsigned long arg)
 {
-    pr_info("Executing Tasklet Function : arg = %ld\n", arg);
+    pr_info("Executing tasklet function : arg = %ld\n", arg);
 }
 
 /**
@@ -277,7 +285,7 @@ void workqueue_fn(struct work_struct *work)
     struct my_list *temp_node = NULL;
     struct my_list *temp;
     int count = 0;
-    pr_info("Executing Workqueue Function\n");
+    pr_info("Executing workqueue function\n");
 
     // Link list: Creating Node.
     temp_node = kmalloc(sizeof(struct my_list), GFP_KERNEL);
@@ -292,7 +300,7 @@ void workqueue_fn(struct work_struct *work)
     {
         pr_info("Node %d data = %d\n", count++, temp->data);
     }
-    pr_info("Total Nodes = %d\n", count);
+    pr_info("Total nodes = %d\n", count);
 }
 
 /**
@@ -303,7 +311,7 @@ static irqreturn_t irq_handler(int irq, void *dev_id)
     struct kernel_siginfo info;
 
     // Top half
-    pr_info("Shared IRQ: Interrupt Occurred");
+    pr_info("Shared IRQ: Interrupt occurred");
 
     // Bottom half using global workqueue.
     schedule_work(&workqueue);
@@ -336,7 +344,7 @@ static ssize_t sysfs_show(struct kobject *kobj,
 {
     struct irq_desc *desc;
 
-    pr_info("Sysfs - Read!!!\n");
+    pr_info("Sysfs - read!!!\n");
     pr_info("Raise interrupt IRQ 11\n");
 
     // Raise IRQ 11.
@@ -358,29 +366,47 @@ static ssize_t sysfs_show(struct kobject *kobj,
 static ssize_t sysfs_store(struct kobject *kobj,
                            struct kobj_attribute *attr, const char *buf, size_t count)
 {
-    pr_info("Sysfs - Write!!!\n");
+    pr_info("Sysfs - write!!!\n");
     sscanf(buf, "%d", &sysfs_value);
 
     return count;
 }
 
 /**
- * Thread function.
+ * Waitqueue thread function 1.
  */
 static int wait_function(void *unused)
 {
-
     while (1) {
-        pr_info("Waiting For Event...\n");
+        pr_info("Waiting for event - wait queue...\n");
         wait_event_interruptible(wait_queue_exit, wait_queue_flag != 0);
         if (wait_queue_flag == 2) {
-            pr_info("Event Came From Exit Function\n");
+            pr_info("Event came from exit Function\n");
             return 0;
         } else {
-            pr_info("Event Came From %d\n", wait_queue_flag);
+            pr_info("Event came from %d\n", wait_queue_flag);
         }
         wait_queue_flag = 0;
     }
+    return 0;
+}
+
+/*
+** Waitqueue thread function 2
+*/
+static int wait_function2(void *unused)
+{
+    while (1) {
+        pr_info("Waiting for event - completion...\n");
+        wait_for_completion(&data_read_complete);
+        if (completion_flag == 2) {
+            pr_info("Event came from Exit Function\n");
+            return 0;
+        }
+        pr_info("Event came from read function - %d\n", ++completion_count);
+        completion_flag = 0;
+    }
+    do_exit(0);
     return 0;
 }
 
@@ -527,6 +553,12 @@ static ssize_t globalmem_read(struct file *filp, char __user *buf, size_t size,
     }
     mutex_unlock(&dev->mutex);
 
+    // Notify thread read is completed.
+    completion_flag = 1;
+    if (!completion_done(&data_read_complete)) {
+        complete(&data_read_complete);
+    }
+
     return ret;
 }
 
@@ -664,9 +696,6 @@ static int __init globalmem_init(void)
     // Creating Proc entry under "/proc/globalmem/".
     proc_create("globalmem", 0666, proc_parent, &proc_fops);
 
-    // Initialize wait queue.
-    init_waitqueue_head(&wait_queue_exit);
-
     // Creating a directory in /sys/kernel/
     kobj_ref = kobject_create_and_add("example_sysfs", kernel_kobj);
 
@@ -676,13 +705,24 @@ static int __init globalmem_init(void)
         goto r_sysfs;
     }
 
-    // Create the kernel thread with name 'mythread'
+    // Initialize wait queue and kernel thread.
+    init_waitqueue_head(&wait_queue_exit);
     wait_thread = kthread_create(wait_function, NULL, "WaitThread");
     if (wait_thread) {
-        pr_info("Thread Created successfully\n");
+        pr_info("Thread created successfully\n");
         wake_up_process(wait_thread);
     } else
         pr_info("Thread creation failed\n");
+
+    // Initialize completion and kernel thread.
+    init_completion(&data_read_complete);
+    wait_thread2 = kthread_create(wait_function2, NULL, "WaitThread2");
+    if (wait_thread2) {
+        pr_info("Thread created successfully\n");
+        wake_up_process(wait_thread2);
+    } else {
+        pr_err("Thread creation failed\n");
+    }
 
     // Register an interrupt handler.
     if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "globalmem", (void *)(irq_handler))) {
@@ -696,7 +736,7 @@ static int __init globalmem_init(void)
     // Creating kernel thread.
     globalmem_thread = kthread_create(thread_function, NULL, "globalmem Thread");
     if (globalmem_thread) {
-        pr_info("Kthread Created Successfully...\n");
+        pr_info("Kthread created successfully...\n");
         wake_up_process(globalmem_thread);
     } else {
         pr_err("Cannot create kthread\n");
@@ -704,7 +744,7 @@ static int __init globalmem_init(void)
     }
     globalmem_thread2 = kthread_run(thread_function2, NULL, "globalmem Thread 2");
     if (globalmem_thread2) {
-        pr_info("Kthread2 Created Successfully...\n");
+        pr_info("Kthread2 created successfully...\n");
     } else {
         pr_err("Cannot create kthread2\n");
         goto irq;
@@ -789,6 +829,12 @@ static void __exit globalmem_exit(void)
     // Wakeup wait queue before exit driver.
     wait_queue_flag = 2;
     wake_up_interruptible(&wait_queue_exit);
+
+    // Wakeup completion before exit driver.
+    completion_flag = 2;
+    if (!completion_done(&data_read_complete)) {
+        complete(&data_read_complete);
+    }
 
     // Remove complete /proc/example-kernel.
     proc_remove(proc_parent);
