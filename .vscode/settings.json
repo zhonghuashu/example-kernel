@@ -57,7 +57,8 @@
       "ostream": "cpp",
       "stdexcept": "cpp",
       "streambuf": "cpp",
-      "cinttypes": "cpp"
+      "cinttypes": "cpp",
+      "kernel.h": "c"
     },
     "makefile.configurations": [],
     // "makefile.compileCommandsPath": "compile_commands.json",

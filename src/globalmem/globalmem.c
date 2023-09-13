@@ -1,5 +1,5 @@
 /*
- * a simple char device driver: globalmem mutex
+ * a simple char device driver: globalmem
  */
 
 #include <linux/cdev.h>
@@ -154,6 +154,8 @@ struct mutex globalmem_mutex;
 spinlock_t globalmem_spinlock;
 rwlock_t globalmem_rwlock;
 int globalmem_thread_variable;
+atomic_t globalmem_thread_variable2 = ATOMIC_INIT(0);
+seqlock_t globalmem_seq_lock;
 
 /***************** signal *******************/
 #define SIGETX 44
@@ -220,6 +222,9 @@ void tasklet_fn(unsigned long arg)
 int thread_function(void *pv)
 {
     int i = 0;
+    unsigned int seq_no;
+    unsigned long read_value;
+
     while(!kthread_should_stop()) {
         i++;
         // Mutex example.
@@ -245,9 +250,18 @@ int thread_function(void *pv)
         }
         read_unlock(&globalmem_rwlock);
 
+        // Atomic integer variable.
+        atomic_inc(&globalmem_thread_variable2);
+
+        // Seqlock to check if valid sequency number and reader will retry.
+        do {
+            seq_no = read_seqbegin(&globalmem_seq_lock);
+            read_value = globalmem_thread_variable;
+        } while (read_seqretry(&globalmem_seq_lock, seq_no));
+
         if (i == 1) {
             pr_info("In globalmem thread function %d\n", i++);
-            pr_info("globalmem_thread_variable: %d\n", globalmem_thread_variable);
+            pr_info("globalmem_thread_variable: %d %d\n", globalmem_thread_variable, atomic_read(&globalmem_thread_variable2));
         }
 
         msleep(1000);
@@ -272,6 +286,12 @@ int thread_function2(void *pv)
         write_lock(&globalmem_rwlock);
         globalmem_thread_variable++;
         write_unlock(&globalmem_rwlock);
+
+        atomic_inc(&globalmem_thread_variable2);
+
+        write_seqlock(&globalmem_seq_lock);
+        globalmem_thread_variable++;
+        write_sequnlock(&globalmem_seq_lock);
 
         msleep(1000);
     }
