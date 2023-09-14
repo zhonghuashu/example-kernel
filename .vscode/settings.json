@@ -58,7 +58,8 @@
       "stdexcept": "cpp",
       "streambuf": "cpp",
       "cinttypes": "cpp",
-      "kernel.h": "c"
+      "kernel.h": "c",
+      "usb.h": "c"
     },
     "makefile.configurations": [],
     // "makefile.compileCommandsPath": "compile_commands.json",
