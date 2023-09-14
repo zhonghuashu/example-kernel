@@ -1,7 +1,8 @@
 
 /**
- * @file usb_driver.c
+ * @file usb_driver.
  * @brief Simple USB driver explanation
+ * Test with Raspberry Pi / Mobile phone USB connection.
  * @author zhonghuashu (77599567@qq.com)
  * @date 2023-09-13
  */
@@ -18,8 +19,8 @@
 */
 #define IS_NEW_METHOD_USED (1)
 
-#define USB_VENDOR_ID (0x0781)  // USB device's vendor ID
-#define USB_PRODUCT_ID (0x5597) // USB device's product ID
+#define USB_VENDOR_ID (0x12d1)  // USB device's vendor ID
+#define USB_PRODUCT_ID (0x107e) // USB device's product ID
 
 #define PRINT_USB_INTERFACE_DESCRIPTOR(i)                            \
     {                                                                \
@@ -93,7 +94,7 @@ MODULE_DEVICE_TABLE(usb, example_usb_table);
 
 // The structure needs to do is register with the linux subsystem
 static struct usb_driver example_usb_driver = {
-    .name = "EmbeTronicX USB Driver",
+    .name = "Example USB Driver",
     .probe = example_usb_probe,
     .disconnect = example_usb_disconnect,
     .id_table = example_usb_table,
