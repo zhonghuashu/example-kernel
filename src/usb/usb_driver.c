@@ -2,7 +2,7 @@
 /**
  * @file usb_driver.
  * @brief Simple USB driver explanation
- * Test with Raspberry Pi / Mobile phone USB connection.
+ *        Test with Raspberry Pi / Mobile phone USB connection.
  * @author zhonghuashu (77599567@qq.com)
  * @date 2023-09-13
  */

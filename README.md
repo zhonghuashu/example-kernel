@@ -113,6 +113,18 @@ $ insmod globalmem.ko
 Kernel timer callback function called [1]
 hrtimer callback function called [1]
 
+# Poll / select / epoll to read / write data based on sysfs value state.
+# Generate PULLOUT event to give user space write permission.
+$ cat /sys/kernel/example_sysfs/sysfs_value
+# Generate PULLIN event to give user space read permission.
+$ echo 4 > /sys/kernel/example_sysfs/s
+$./main_app
+Starting poll...
+POLLOUT : Kernel_val = User space
+Starting poll...
+POLLIN : Kernel_val = User space
+Starting poll...
+
 ```
 
 - `globalfifo`: A simple char device driver with block I/O, non-block poll.

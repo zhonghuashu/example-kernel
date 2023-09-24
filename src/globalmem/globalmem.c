@@ -22,6 +22,7 @@
 #include <linux/timer.h>
 #include <linux/hrtimer.h>
 #include <linux/ktime.h>
+#include <linux/poll.h>
 
 #define GLOBALMEM_SIZE 0x1000
 #define GLOBALMEM_MAGIC 'g'
@@ -73,6 +74,7 @@ static long globalmem_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 static ssize_t globalmem_read(struct file *filp, char __user *buf, size_t size, loff_t *ppos);
 static ssize_t globalmem_write(struct file *filp, const char __user *buf, size_t size, loff_t *ppos);
 static loff_t globalmem_llseek(struct file *filp, loff_t offset, int orig);
+static unsigned int globalmem_poll(struct file *filp, struct poll_table_struct *wait);
 
 static const struct file_operations globalmem_fops = {
     .owner = THIS_MODULE,
@@ -81,7 +83,9 @@ static const struct file_operations globalmem_fops = {
     .write = globalmem_write,
     .unlocked_ioctl = globalmem_ioctl, // Realize device control command, map to user space fcntl() / ioctl().
     .open = globalmem_open,
-    .release = globalmem_release};
+    .release = globalmem_release,
+    .poll = globalmem_poll
+};
 
 /***************** Procfs *******************/
 char globalmem_proc_array[20] = "try proc array\n";
@@ -175,6 +179,11 @@ void timer_callback(struct timer_list * data);
 static struct hrtimer globalmem_hr_timer;
 static unsigned int hrtimer_counter = 0;
 enum hrtimer_restart hr_timer_callback(struct hrtimer *timer);
+
+/***************** pull / select *******************/
+DECLARE_WAIT_QUEUE_HEAD(wait_queue_globalmem_data);
+static bool can_write = false;
+static bool can_read  = false;
 
 /**
  * Timer Callback function. This will be called when timer expires
@@ -364,7 +373,7 @@ static ssize_t sysfs_show(struct kobject *kobj,
 {
     struct irq_desc *desc;
 
-    pr_info("Sysfs - read!!!\n");
+    pr_info("Sysfs - read\n");
     pr_info("Raise interrupt IRQ 11\n");
 
     // Raise IRQ 11.
@@ -377,6 +386,10 @@ static ssize_t sysfs_show(struct kobject *kobj,
     __this_cpu_write(vector_irq[59], desc);
     asm("int $0x3B");
 
+    // Wake up poll wait queue can write date from user space.
+    can_write = true;
+    wake_up(&wait_queue_globalmem_data);
+
     return sprintf(buf, "%d", sysfs_value);
 }
 
@@ -386,8 +399,12 @@ static ssize_t sysfs_show(struct kobject *kobj,
 static ssize_t sysfs_store(struct kobject *kobj,
                            struct kobj_attribute *attr, const char *buf, size_t count)
 {
-    pr_info("Sysfs - write!!!\n");
+    pr_info("Sysfs - write %s\n", buf);
     sscanf(buf, "%d", &sysfs_value);
+
+    // Wake up poll wait queue can read data from user space.
+    can_read = true;
+    wake_up(&wait_queue_globalmem_data);
 
     return count;
 }
@@ -643,6 +660,30 @@ static loff_t globalmem_llseek(struct file *filp, loff_t offset, int orig)
         break;
     }
     return ret;
+}
+
+/**
+ * This function will be called when app calls the poll function.
+ */
+static unsigned int globalmem_poll(struct file *filp, struct poll_table_struct *wait)
+{
+    __poll_t mask = 0;
+
+    // Add the wait queue that we have created and return immediately.
+    poll_wait(filp, &wait_queue_globalmem_data, wait);
+    pr_info("Poll function\n");
+
+    if (can_read) {
+        can_read = false;
+        mask |= (POLLIN | POLLRDNORM);
+    }
+
+    if (can_write) {
+        can_write = false;
+        mask |= (POLLOUT | POLLWRNORM);
+    }
+
+    return mask;
 }
 
 /**

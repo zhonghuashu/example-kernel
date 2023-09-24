@@ -27,6 +27,11 @@ usb:
 	@echo '>>> Building sub-component: $@'
 	${MAKE} -C $@
 
+gpio:
+	@echo ' '
+	@echo '>>> Building sub-component: $@'
+	${MAKE} -C $@
+
 clean:
 	${MAKE} -C hello clean
 	${MAKE} -C globalmem clean
