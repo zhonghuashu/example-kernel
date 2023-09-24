@@ -1,8 +1,8 @@
 
 /**
  * @file example_gpio.c
- * @brief A exampel GPIO driver.
- *        Test with Raspberry Pi board.
+ * @brief A example GPIO driver.
+ *        Test with Raspberry Pi 3B+ board.
  * @author zhonghuashu (77599567@qq.com)
  * @date 2023-09-24
  */
@@ -31,15 +31,13 @@ static void __exit example_gpio_exit(void);
 /*************** Driver functions **********************/
 static int example_gpio_open(struct inode *inode, struct file *file);
 static int example_gpio_release(struct inode *inode, struct file *file);
-static ssize_t example_gpio_read(struct file *filp,
-                        char __user *buf, size_t len, loff_t *off);
-static ssize_t example_gpio_write(struct file *filp,
-                         const char *buf, size_t len, loff_t *off);
+static ssize_t example_gpio_read(struct file *filp, char __user *buf, size_t len, loff_t *off);
+static ssize_t example_gpio_write(struct file *filp, const char *buf, size_t len, loff_t *off);
 /******************************************************/
 
 // File operation structure
 static struct file_operations fops =
-    {
+{
         .owner = THIS_MODULE,
         .read = example_gpio_read,
         .write = example_gpio_write,
@@ -173,7 +171,6 @@ r_unreg:
 
     return -1;
 }
-module_init(example_gpio_init);
 
 static void __exit example_gpio_exit(void)
 {
@@ -185,6 +182,8 @@ static void __exit example_gpio_exit(void)
     unregister_chrdev_region(dev, 1);
     printk(KERN_INFO "Example gpio driver exit\n");
 }
+
+module_init(example_gpio_init);
 module_exit(example_gpio_exit);
 
 MODULE_AUTHOR("zhonghuashu <77599567@qq.com>");

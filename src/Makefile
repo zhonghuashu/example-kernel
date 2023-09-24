@@ -1,4 +1,4 @@
-SUBDIRS  = 	hello globalmem globalfifo second usb
+SUBDIRS  = 	hello globalmem globalfifo second usb gpio_driver gpio_irq
 
 all: ${SUBDIRS}
 
@@ -27,7 +27,12 @@ usb:
 	@echo '>>> Building sub-component: $@'
 	${MAKE} -C $@
 
-gpio:
+gpio_driver:
+	@echo ' '
+	@echo '>>> Building sub-component: $@'
+	${MAKE} -C $@
+
+gpio_irq:
 	@echo ' '
 	@echo '>>> Building sub-component: $@'
 	${MAKE} -C $@
@@ -38,5 +43,7 @@ clean:
 	${MAKE} -C globalfifo clean
 	${MAKE} -C second clean
 	${MAKE} -C usb clean
+	${MAKE} -C gpio_driver clean
+	${MAKE} -C gpio_irq clean
 
 .PHONY: ${SUBDIRS}

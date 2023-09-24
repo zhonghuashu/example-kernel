@@ -216,3 +216,15 @@ $ insmod usb_driver.ko
 [ 1580.635901] Voltage normalised (0x00000000)
 
 ```
+- `gpio`: A gpio driver running on Raspberry Pi board.
+```shell
+# Tun on / off GPIO 21 / LED.
+$ echo 1 > /dev/example_gpio_device
+$ echo 0 > /dev/example_gpio_device
+# Read GPIO 21 status.
+$ cat /dev/example_gpio_device
+Read function : GPIO_21 = 1
+# Read exported GPIO sysfs status using gpio_export().
+$ cat /sys/class/gpio/gpio21/value
+1
+```

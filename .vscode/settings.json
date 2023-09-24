@@ -59,7 +59,8 @@
       "streambuf": "cpp",
       "cinttypes": "cpp",
       "kernel.h": "c",
-      "usb.h": "c"
+      "usb.h": "c",
+      "kdev_t.h": "c"
     },
     "makefile.configurations": [],
     // "makefile.compileCommandsPath": "compile_commands.json",
