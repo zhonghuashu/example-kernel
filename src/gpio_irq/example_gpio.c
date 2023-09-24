@@ -27,10 +27,10 @@ extern unsigned long volatile jiffies;
 unsigned long old_jiffie = 0;
 #endif
 
-// LED is connected to this GPIO
+// Output LED is connected to this GPIO
 #define GPIO_21_OUT (21)
 
-// LED is connected to this GPIO
+// Input button is connected to this GPIO
 #define GPIO_25_IN (25)
 
 // GPIO_25_IN value toggle
@@ -71,10 +71,8 @@ static void __exit example_gpio_exit(void);
 /*************** Driver functions **********************/
 static int example_gpio_open(struct inode *inode, struct file *file);
 static int example_gpio_release(struct inode *inode, struct file *file);
-static ssize_t example_gpio_read(struct file *filp,
-                        char __user *buf, size_t len, loff_t *off);
-static ssize_t example_gpio_write(struct file *filp,
-                         const char *buf, size_t len, loff_t *off);
+static ssize_t example_gpio_read(struct file *filp, char __user *buf, size_t len, loff_t *off);
+static ssize_t example_gpio_write(struct file *filp, const char *buf, size_t len, loff_t *off);
 /******************************************************/
 
 // File operation structure
