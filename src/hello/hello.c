@@ -100,6 +100,6 @@ static void __exit hello_exit(void)
 module_exit(hello_exit);
 
 MODULE_AUTHOR("zhonghuashu <77599567@qq.com>");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A simple Hello World Module");
 MODULE_ALIAS("a simplest module");

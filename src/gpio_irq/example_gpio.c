@@ -31,7 +31,7 @@ unsigned long old_jiffie = 0;
 #define GPIO_21_OUT (21)
 
 // Input button is connected to this GPIO
-#define GPIO_25_IN (25)
+#define GPIO_25_IN (24)
 
 // GPIO_25_IN value toggle
 unsigned int led_toggle = 0;
@@ -265,5 +265,5 @@ module_init(example_gpio_init);
 module_exit(example_gpio_exit);
 
 MODULE_AUTHOR("zhonghuashu <77599567@qq.com>");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A example GPIO Module");
