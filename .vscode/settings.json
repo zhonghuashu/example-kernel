@@ -60,7 +60,8 @@
       "cinttypes": "cpp",
       "kernel.h": "c",
       "usb.h": "c",
-      "kdev_t.h": "c"
+      "kdev_t.h": "c",
+      "i2c.h": "c"
     },
     "makefile.configurations": [],
     // "makefile.compileCommandsPath": "compile_commands.json",

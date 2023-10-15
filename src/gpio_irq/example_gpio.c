@@ -27,7 +27,7 @@ extern unsigned long volatile jiffies;
 unsigned long old_jiffie = 0;
 #endif
 
-// LED is connected to this GPIO
+// Output LED is connected to this GPIO
 #define GPIO_21_OUT (21)
 
 // LED is connected to this GPIO
@@ -71,10 +71,8 @@ static void __exit example_gpio_exit(void);
 /*************** Driver functions **********************/
 static int example_gpio_open(struct inode *inode, struct file *file);
 static int example_gpio_release(struct inode *inode, struct file *file);
-static ssize_t example_gpio_read(struct file *filp,
-                        char __user *buf, size_t len, loff_t *off);
-static ssize_t example_gpio_write(struct file *filp,
-                         const char *buf, size_t len, loff_t *off);
+static ssize_t example_gpio_read(struct file *filp, char __user *buf, size_t len, loff_t *off);
+static ssize_t example_gpio_write(struct file *filp, const char *buf, size_t len, loff_t *off);
 /******************************************************/
 
 // File operation structure
@@ -267,5 +265,5 @@ module_init(example_gpio_init);
 module_exit(example_gpio_exit);
 
 MODULE_AUTHOR("zhonghuashu <77599567@qq.com>");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A example GPIO Module");

@@ -187,5 +187,5 @@ module_init(example_gpio_init);
 module_exit(example_gpio_exit);
 
 MODULE_AUTHOR("zhonghuashu <77599567@qq.com>");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A example GPIO Module");
