@@ -14,7 +14,7 @@
 
 #define I2C_BUS_AVAILABLE       (          1 )              // I2C Bus available in our Raspberry Pi
 #define SLAVE_DEVICE_NAME       ( "WS_OLED"  )              // Device and Driver Name
-#define SSD1306_SLAVE_ADDR      (       0x3C )              // SSD1306 OLED Slave Address
+#define SSD1306_SLAVE_ADDR      (       0x3C )              // SSD1306 OLED Slave Address: 0x3c (WaveShare) / 0x78 (Tytion)
 #define SSD1306_MAX_SEG         (        128 )              // Maximum segment
 #define SSD1306_MAX_LINE        (          7 )              // Maximum line
 #define SSD1306_DEF_FONT_SIZE   (          5 )              // Default font size
@@ -628,7 +628,7 @@ static int __init etx_driver_init(void)
 
   if( etx_i2c_adapter != NULL )
   {
-    etx_i2c_client_oled = i2c_new_device(etx_i2c_adapter, &oled_i2c_board_info);
+    etx_i2c_client_oled = i2c_new_client_device(etx_i2c_adapter, &oled_i2c_board_info);
 
     if( etx_i2c_client_oled != NULL )
     {
