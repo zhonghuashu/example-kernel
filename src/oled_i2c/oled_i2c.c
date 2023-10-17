@@ -532,7 +532,7 @@ static int etx_oled_probe(struct i2c_client *client,
     SSD1306_StartScrollHorizontal(true, 0, 2);
 
     // Write String to OLED
-    SSD1306_String("Welcome\nTo\Nanjing China\n\n");
+    SSD1306_String("Welcome\nTo\nNanjing China\n\n");
 
     pr_info("OLED Probed!!!\n");
 
