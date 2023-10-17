@@ -1,10 +1,8 @@
 KVERS = $(shell uname -r)
 
 # Kernel modules
-obj-m += oled_spi.o ssd1306.o
-
-# Specify flags for the module compilation.
-#EXTRA_CFLAGS=-g -O0
+obj-m += oled_spi.o
+oled_spi-objs := oled_spi.o ssd1306.o
 
 build: kernel_modules
 
