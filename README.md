@@ -228,3 +228,7 @@ Read function : GPIO_21 = 1
 $ cat /sys/class/gpio/gpio21/value
 1
 ```
+- `oled_i2c`: A OLED display driver via I2C running on Raspberry Pi board.
+```shell
+$ sudo insmod oled_i2c
+```
