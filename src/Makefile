@@ -1,4 +1,4 @@
-SUBDIRS  = 	hello globalmem globalfifo second usb gpio_driver gpio_irq uio oled_i2c
+SUBDIRS  = 	hello globalmem globalfifo second usb gpio_driver gpio_irq uio oled_i2c oled_spi
 
 all: ${SUBDIRS}
 
@@ -47,6 +47,11 @@ oled_i2c:
 	@echo '>>> Building sub-component: $@'
 	${MAKE} -C $@
 
+oled_spi:
+	@echo ' '
+	@echo '>>> Building sub-component: $@'
+	${MAKE} -C $@
+
 clean:
 	${MAKE} -C hello clean
 	${MAKE} -C globalmem clean
@@ -57,5 +62,6 @@ clean:
 	${MAKE} -C gpio_irq clean
 	${MAKE} -C uio clean
 	${MAKE} -C oled_i2c clean
+	${MAKE} -C oled_spi clean
 
 .PHONY: ${SUBDIRS}
