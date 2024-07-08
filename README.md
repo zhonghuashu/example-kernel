@@ -232,3 +232,15 @@ $ cat /sys/class/gpio/gpio21/value
 ```shell
 $ sudo insmod oled_i2c
 ```
+
+- `simple_timer`: A simple timer using jiffies / hrtimer.
+```shell
+$ rmmod simple_timer.ko
+$ insmod simple_timer.ko
+
+# For linux-5.10, jiffies timer:
+# mod_time(timer, jiffies + 1) ... measured timer interval is 20 ms.
+# mod_time(timer, jiffies + 0) ... measured timer interval is 10 ms.
+$ watch -n 1 cat /sys/kernel/example_sysfs/sysfs_value
+jiffies timer: 1750, hr timer: 1752
+```
