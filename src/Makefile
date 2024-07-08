@@ -1,4 +1,4 @@
-SUBDIRS  = 	hello globalmem globalfifo second usb gpio_driver gpio_irq uio oled_i2c oled_spi
+SUBDIRS  = 	hello globalmem globalfifo second simple_timer usb gpio_driver gpio_irq uio oled_i2c oled_spi
 
 all: ${SUBDIRS}
 
@@ -18,6 +18,11 @@ globalfifo:
 	${MAKE} -C $@
 
 second:
+	@echo ' '
+	@echo '>>> Building sub-component: $@'
+	${MAKE} -C $@
+
+simple_timer:
 	@echo ' '
 	@echo '>>> Building sub-component: $@'
 	${MAKE} -C $@

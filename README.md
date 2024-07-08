@@ -13,7 +13,7 @@ $ cd WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1
 
 # Create symbol link under kernel module.
 $ mkdir /lib/modules/5.10.102.1-microsoft-standard-WSL2
-$ ln -s /root/develop/linux/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1 build
+$ ln -s /root/github/WSL2-Linux-Kernel-linux-msft-wsl-5.10.102.1 build
 
 ```
 # Build and test

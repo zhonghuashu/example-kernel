@@ -11,4 +11,6 @@ main_sigio
 main_second
 main_aio
 main_app
+main_uio
 compile_commands.json
+.cache
