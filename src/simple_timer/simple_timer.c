@@ -41,7 +41,7 @@ static ssize_t sysfs_show(struct kobject *kobj,
 {
     pr_info("Sysfs - read\n");
 
-    return sprintf(buf, "jiffies timer: %d\n, hr timer: %d", timer_counter, hrtimer_counter);
+    return sprintf(buf, "jiffies timer: %d, hr timer: %d\n", timer_counter, hrtimer_counter);
 }
 
 /**
@@ -101,7 +101,7 @@ static int __init simple_timer_init(void)
     // If you face some issues and using older kernel version, then you can try setup_timer API(Change Callback function's argument to unsingned long instead of struct timer_list *.
     timer_setup(&simple_timer, timer_callback, 0);
     // Setup timer interval to based on TIMEOUT Macro.
-    mod_timer(&simple_timer, jiffies + msecs_to_jiffies(TIMEOUT));
+    mod_timer(&simple_timer, jiffies + msecs_to_jiffies(TIMEOUT) - 1);
 
     // Setup hrtimer to call my_timer_callback.
     ktime = ktime_set(TIMEOUT_SEC, TIMEOUT_NSEC);
